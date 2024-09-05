@@ -1,0 +1,79 @@
+.App {
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+
+h1 {
+  color: #333;
+  font-size: 2em;
+}
+
+.boardRow {
+  display: flex;
+  justify-content: center;
+}
+
+.square {
+  width: 80px; /* Aumentado de 60px para 80px */
+  height: 80px; /* Aumentado de 60px para 80px */
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  font-size: 36px; /* Aumentado de 24px para 36px */
+  font-weight: bold;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.3s, border 0.3s;
+}
+
+.square:hover {
+  background: #e0e0e0;
+}
+
+.winningSquare {
+  background: #ffeb3b; /* Cor amarela para destacar */
+  border: 2px solid #fbc02d; /* Borda amarela mais grossa */
+}
+
+.status {
+  margin: 20px 0;
+  font-size: 1.5em;
+  color: #555;
+}
+
+.restartButton,
+.newGameButton {
+  margin: 10px;
+  padding: 10px 20px;
+  font-size: 1em;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.restartButton {
+  background-color: #ff9800;
+  color: white;
+}
+
+.restartButton:hover {
+  background-color: #f57c00;
+}
+
+.newGameButton {
+  background-color: #4caf50;
+  color: white;
+}
+
+.newGameButton:hover {
+  background-color: #388e3c;
+}
+
+.scoreBoard {
+  margin: 20px;
+  font-size: 1.2em;
+}
+
+.scoreBoard p {
+  margin: 5px 0;
+}
