@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './App.module.css';
 import axios from 'axios';
 
-
+// Função teste, chamada sempre que uma posição for marcada no tabuleiro
 function treatRequisition () {
   axios.get('http://127.0.0.1:5000/ping').then(response =>
   {
@@ -12,11 +12,26 @@ function treatRequisition () {
     console.error('Erro:', error);
   })
 }
+
+function sendBoardStatus (array) {
+  axios.get('http://127.0.0.1:5000/verifyState', {
+    params: {
+      board: array
+    }
+  })
+  .then(response => {
+    console.log(response.data);
+  })
+  .catch(error => {
+    console.log('Erro:', error);
+  });
+}
+
 // Componente Square com destaque para os quadrados vencedores
 const Square = ({ value, onClick, isWinning }) => (
   <button
     className={`${styles.square} ${isWinning ? styles.winningSquare : ''}`}
-    onClick={treatRequisition}
+    onClick={onClick}
   >
     {value}
   </button>
@@ -49,12 +64,20 @@ const Board = ({ onNewGame, winnerCount }) => {
     return { winner: null, line: [] };
   };
 
+  // Essa função será o "gatilho" para o envio do estado do tabuleiro para
+  // para o servidor
+  // Necessário alterá-la para que seja passado um array com 9 elementos (o estado
+  // atual de cada posicao do tabuleiro) para a funcao sendBoardStatus(), que realiza a requisição
+  // Importante: os valores em branco no tabuleiro devem ser passados como -1, não como null
+  
   const handleClick = (i) => {
     const newSquares = squares.slice();
     if (gameStatus || squares[i]) return;
     newSquares[i] = xIsNext ? 'X' : 'O';
     setSquares(newSquares);
     setXIsNext(!xIsNext);
+    
+    sendBoardStatus()
     const { winner, line } = calculateWinner(newSquares);
     if (winner) {
       setGameStatus(`Winner: ${winner}`);
@@ -119,7 +142,8 @@ const Board = ({ onNewGame, winnerCount }) => {
   );
 };
 
-function App() {
+function App() { 
+  
   const [winCounts, setWinCounts] = useState({ X: 0, O: 0 });
 
   const handleWinnerCount = (winner) => {
