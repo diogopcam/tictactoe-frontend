@@ -1,11 +1,22 @@
 import React, { useState } from 'react';
 import styles from './App.module.css';
+import axios from 'axios';
 
+
+function treatRequisition () {
+  axios.get('http://127.0.0.1:5000/ping').then(response =>
+  {
+    console.log(response.data);
+  })
+  .catch(error => {
+    console.error('Erro:', error);
+  })
+}
 // Componente Square com destaque para os quadrados vencedores
 const Square = ({ value, onClick, isWinning }) => (
   <button
     className={`${styles.square} ${isWinning ? styles.winningSquare : ''}`}
-    onClick={onClick}
+    onClick={treatRequisition}
   >
     {value}
   </button>
