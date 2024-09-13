@@ -4,7 +4,7 @@ import axios from 'axios';
 
 // Função teste, chamada sempre que uma posição for marcada no tabuleiro
 function treatRequisition () {
-  axios.get('http://127.0.0.1:5000/ping').then(response =>
+  axios.get('https://tictactoe-ia.onrender.com/sendBoardStatus').then(response =>
   {
     console.log(response.data);
   })
@@ -14,17 +14,7 @@ function treatRequisition () {
 }
 
 function sendBoardStatus (array) {
-  axios.get('http://127.0.0.1:5000/verifyState', {
-    params: {
-      board: array
-    }
-  })
-  .then(response => {
-    console.log(response.data);
-  })
-  .catch(error => {
-    console.log('Erro:', error);
-  });
+  handleClickDois(array);
 }
 
 // Componente Square com destaque para os quadrados vencedores
@@ -36,6 +26,24 @@ const Square = ({ value, onClick, isWinning }) => (
     {value}
   </button>
 );
+
+const sendArrayToServer = async (arrayData) => {
+  try {
+    const response = await axios.post('http://127.0.0.1:5000/verifyState', arrayData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('Resposta do servidor:', response.data);
+  } catch (error) {
+    console.error('Erro ao enviar o array:', error);
+  }
+};
+
+const handleClickDois = (array) => {
+  sendArrayToServer(array);
+};
+
 
 // Componente Board com lógica de jogo e destaque para a linha vencedora
 const Board = ({ onNewGame, winnerCount }) => {
@@ -76,8 +84,6 @@ const Board = ({ onNewGame, winnerCount }) => {
     newSquares[i] = xIsNext ? 'X' : 'O';
     setSquares(newSquares);
     setXIsNext(!xIsNext);
-    
-    sendBoardStatus()
     const { winner, line } = calculateWinner(newSquares);
     if (winner) {
       setGameStatus(`Winner: ${winner}`);
@@ -89,6 +95,7 @@ const Board = ({ onNewGame, winnerCount }) => {
       setGameStatus(null);
       setWinningLine([]);
     }
+    sendBoardStatus(newSquares)
   };
 
   const renderSquare = (i) => (
