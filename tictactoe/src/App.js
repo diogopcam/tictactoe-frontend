@@ -2,30 +2,10 @@ import React, { useState, useEffect } from 'react';
 import styles from './App.module.css';
 import axios from 'axios';
 
-// Função teste, chamada sempre que uma posição for marcada no tabuleiro
-function treatRequisition () {
-  axios.get('https://tictactoe-ia.onrender.com/sendBoardStatus').then(response =>
-  {
-    console.log(response.data);
-  })
-  .catch(error => {
-    console.error('Erro:', error);
-  })
-}
-
+// Funções de manipulação do estado mais recente do tabuleiro
 function sendBoardStatus (array) {
-  handleClickDois(array);
+  sendArrayToServer(array);
 }
-
-// Componente Square com destaque para os quadrados vencedores
-const Square = ({ value, onClick, isWinning }) => (
-  <button
-    className={`${styles.square} ${isWinning ? styles.winningSquare : ''}`}
-    onClick={onClick}
-  >
-    {value}
-  </button>
-);
 
 const sendArrayToServer = async (arrayData) => {
   try {
@@ -40,10 +20,15 @@ const sendArrayToServer = async (arrayData) => {
   }
 };
 
-const handleClickDois = (array) => {
-  sendArrayToServer(array);
-};
-
+// Componente Square com destaque para os quadrados vencedores
+const Square = ({ value, onClick, isWinning }) => (
+  <button
+    className={`${styles.square} ${isWinning ? styles.winningSquare : ''}`}
+    onClick={onClick}
+  >
+    {value}
+  </button>
+);
 
 // Componente Board com lógica de jogo e destaque para a linha vencedora
 const Board = ({ onNewGame, winnerCount }) => {
