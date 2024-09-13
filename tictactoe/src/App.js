@@ -4,7 +4,16 @@ import axios from 'axios';
 
 // Funções de manipulação do estado mais recente do tabuleiro
 function sendBoardStatus (array) {
-  sendArrayToServer(array);
+  const arrayConverted = array.map(function(value){
+    return value === null ? 0 :
+           value === "X" ? 1 :
+           value === "O" ? -1 :
+           value;
+  })
+  // const arrayConverted = array.map(value => value === null ? 0 : value )
+  console.log(arrayConverted)
+  // array.forEach(func)
+  sendArrayToServer(arrayConverted);
 }
 
 const sendArrayToServer = async (arrayData) => {
