@@ -18,12 +18,13 @@ function sendBoardStatus (array) {
 
 const sendArrayToServer = async (arrayData) => {
   try {
-    const response = await axios.post('http://127.0.0.1:5000/verifyState', arrayData, {
+    const response = await axios.post('http://127.0.0.1:5000/knn', arrayData, {
       headers: {
         'Content-Type': 'application/json',
       },
     });
     console.log('Resposta do servidor:', response.data);
+    
   } catch (error) {
     console.error('Erro ao enviar o array:', error);
   }
