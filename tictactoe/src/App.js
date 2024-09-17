@@ -2,21 +2,21 @@ import React, { useState, useEffect } from 'react';
 import styles from './App.module.css';
 import axios from 'axios';
 
-// Funções de manipulação do estado mais recente do tabuleiro
-function sendBoardStatus (array) {
-  const arrayConverted = array.map(function(value){
-    return value === null ? 0 :
-           value === "X" ? 1 :
-           value === "O" ? -1 :
-           value;
-  })
-  // const arrayConverted = array.map(value => value === null ? 0 : value )
-  console.log(arrayConverted)
-  // array.forEach(func)
-  sendArrayToServer(arrayConverted);
+// Função que envia o estado do tabuleiro para o servidor
+function sendBoardStatus(array, setKnnPrediction) {
+  const arrayConverted = array.map((value) =>
+    value === null ? 0 :
+    value === "X" ? 1 :
+    value === "O" ? -1 :
+    value
+  );
+  
+  console.log('Array convertido para envio:', arrayConverted);
+  sendArrayToServer(arrayConverted, setKnnPrediction);
 }
 
-const sendArrayToServer = async (arrayData) => {
+// Função que faz a requisição para o servidor
+const sendArrayToServer = async (arrayData, setKnnPrediction) => {
   try {
     const response = await axios.post('http://127.0.0.1:5000/knn', arrayData, {
       headers: {
@@ -24,7 +24,7 @@ const sendArrayToServer = async (arrayData) => {
       },
     });
     console.log('Resposta do servidor:', response.data);
-    
+    setKnnPrediction(response.data.prediction);  // Armazena a predição recebida do servidor
   } catch (error) {
     console.error('Erro ao enviar o array:', error);
   }
@@ -41,7 +41,7 @@ const Square = ({ value, onClick, isWinning }) => (
 );
 
 // Componente Board com lógica de jogo e destaque para a linha vencedora
-const Board = ({ onNewGame, winnerCount }) => {
+const Board = ({ onNewGame, winnerCount, setKnnPrediction }) => {
   const [squares, setSquares] = useState(Array(9).fill(null));
   const [xIsNext, setXIsNext] = useState(true);
   const [gameStatus, setGameStatus] = useState(null);
@@ -67,18 +67,13 @@ const Board = ({ onNewGame, winnerCount }) => {
     return { winner: null, line: [] };
   };
 
-  // Essa função será o "gatilho" para o envio do estado do tabuleiro para
-  // para o servidor
-  // Necessário alterá-la para que seja passado um array com 9 elementos (o estado
-  // atual de cada posicao do tabuleiro) para a funcao sendBoardStatus(), que realiza a requisição
-  // Importante: os valores em branco no tabuleiro devem ser passados como -1, não como null
-  
   const handleClick = (i) => {
     const newSquares = squares.slice();
     if (gameStatus || squares[i]) return;
     newSquares[i] = xIsNext ? 'X' : 'O';
     setSquares(newSquares);
     setXIsNext(!xIsNext);
+    
     const { winner, line } = calculateWinner(newSquares);
     if (winner) {
       setGameStatus(`Winner: ${winner}`);
@@ -90,7 +85,9 @@ const Board = ({ onNewGame, winnerCount }) => {
       setGameStatus(null);
       setWinningLine([]);
     }
-    sendBoardStatus(newSquares)
+    
+    // Enviar o status do tabuleiro para o servidor
+    sendBoardStatus(newSquares, setKnnPrediction);
   };
 
   const renderSquare = (i) => (
@@ -145,7 +142,7 @@ const Board = ({ onNewGame, winnerCount }) => {
 };
 
 function App() { 
-  
+  const [knnPrediction, setKnnPrediction] = useState(''); // Estado para armazenar a predição do KNN
   const [winCounts, setWinCounts] = useState({ X: 0, O: 0 });
 
   const handleWinnerCount = (winner) => {
@@ -162,10 +159,13 @@ function App() {
   return (
     <div className={styles.App}>
       <h1>Tic Tac Toe</h1> 
-      <Board onNewGame={handleNewGame} winnerCount={handleWinnerCount} />
+      <Board onNewGame={handleNewGame} winnerCount={handleWinnerCount} setKnnPrediction={setKnnPrediction} />
       <div className={styles.scoreBoard}>
         <p>X Wins: {winCounts.X}</p>
         <p>O Wins: {winCounts.O}</p>
+        <p> Resultado da predição do KNN: {knnPrediction} </p>
+        <p> Resultado da predição da Árvore de Decisão: </p>
+        <p> Resultado da predição do MLP: </p>
       </div>
     </div>
   );
