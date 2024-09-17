@@ -3,6 +3,12 @@
   font-family: Arial, sans-serif;
 }
 
+.boardContainer{
+  display: flex;
+  flex-direction: row;
+}
+
+
 h1 {
   color: #333;
   font-size: 2em;
@@ -76,4 +82,29 @@ h1 {
 
 .scoreBoard p {
   margin: 5px 0;
+}
+
+
+/* Tabela de predições */
+.predictionTable {
+  margin: 20px auto;
+  border-collapse: collapse;
+  width: 80%;
+}
+
+.predictionTable th,
+.predictionTable td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+.predictionTable th {
+  background-color: #ff9800;
+  color: white;
+  font-weight: bold;
+}
+
+.predictionTable td {
+  background-color: #f9f9f9;
 }

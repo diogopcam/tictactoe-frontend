@@ -1,30 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styles from './App.module.css';
 import axios from 'axios';
 
 // Função que envia o estado do tabuleiro para o servidor
-function sendBoardStatus(array, setKnnPrediction) {
-  const arrayConverted = array.map((value) =>
-    value === null ? 0 :
-    value === "X" ? 1 :
-    value === "O" ? -1 :
-    value
-  );
-  
-  console.log('Array convertido para envio:', arrayConverted);
-  sendArrayToServer(arrayConverted, setKnnPrediction);
-}
-
-// Função que faz a requisição para o servidor
-const sendArrayToServer = async (arrayData, setKnnPrediction) => {
+const sendArrayToServer = async (arrayData, setPrediction, endpoint) => {
   try {
-    const response = await axios.post('http://127.0.0.1:5000/knn', arrayData, {
+    const response = await axios.post(`http://127.0.0.1:5000/${endpoint}`, arrayData, {
       headers: {
         'Content-Type': 'application/json',
       },
     });
     console.log('Resposta do servidor:', response.data);
-    setKnnPrediction(response.data.prediction);  // Armazena a predição recebida do servidor
+    setPrediction(response.data.prediction);
   } catch (error) {
     console.error('Erro ao enviar o array:', error);
   }
@@ -41,7 +28,7 @@ const Square = ({ value, onClick, isWinning }) => (
 );
 
 // Componente Board com lógica de jogo e destaque para a linha vencedora
-const Board = ({ onNewGame, winnerCount, setKnnPrediction }) => {
+const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction }) => {
   const [squares, setSquares] = useState(Array(9).fill(null));
   const [xIsNext, setXIsNext] = useState(true);
   const [gameStatus, setGameStatus] = useState(null);
@@ -85,9 +72,17 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction }) => {
       setGameStatus(null);
       setWinningLine([]);
     }
-    
-    // Enviar o status do tabuleiro para o servidor
-    sendBoardStatus(newSquares, setKnnPrediction);
+
+    // Enviar o estado do tabuleiro para todos os modelos
+    const arrayConverted = newSquares.map(value =>
+      value === null ? 0 :
+      value === "X" ? 1 :
+      value === "O" ? -1 :
+      value
+    );
+
+    sendArrayToServer(arrayConverted, setKnnPrediction, '/models/knn');
+    sendArrayToServer(arrayConverted, setGbPrediction, '/models/gb');
   };
 
   const renderSquare = (i) => (
@@ -142,7 +137,8 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction }) => {
 };
 
 function App() { 
-  const [knnPrediction, setKnnPrediction] = useState(''); // Estado para armazenar a predição do KNN
+  const [knnPrediction, setKnnPrediction] = useState('');
+  const [gbPrediction, setGbPrediction] = useState('');
   const [winCounts, setWinCounts] = useState({ X: 0, O: 0 });
 
   const handleWinnerCount = (winner) => {
@@ -159,13 +155,41 @@ function App() {
   return (
     <div className={styles.App}>
       <h1>Tic Tac Toe</h1> 
-      <Board onNewGame={handleNewGame} winnerCount={handleWinnerCount} setKnnPrediction={setKnnPrediction} />
+      <Board 
+        onNewGame={handleNewGame} 
+        winnerCount={handleWinnerCount} 
+        setKnnPrediction={setKnnPrediction} 
+        setGbPrediction={setGbPrediction}
+      />
       <div className={styles.scoreBoard}>
         <p>X Wins: {winCounts.X}</p>
         <p>O Wins: {winCounts.O}</p>
-        <p> Resultado da predição do KNN: {knnPrediction} </p>
-        <p> Resultado da predição da Árvore de Decisão: </p>
-        <p> Resultado da predição do MLP: </p>
+        <table className={styles.predictionTable}>
+          <thead>
+            <tr>
+              <th>Modelo</th>
+              <th>Predição</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Predição do KNN</td>
+              <td>{knnPrediction}</td>
+            </tr>
+            <tr>
+              <td>Predição do Gradient Booster </td>
+              <td>{gbPrediction}</td>
+            </tr>
+            {/* <tr>
+              <td>Predição da Árvore de Decisão</td>
+              <td>{decisionTreePrediction}</td>
+            </tr> */}
+            <tr>
+              {/* <td>Predição do MLP</td>
+              <td>{mlpPrediction}</td> */}
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   );
