@@ -28,7 +28,7 @@ const Square = ({ value, onClick, isWinning }) => (
 );
 
 // Componente Board com lógica de jogo e destaque para a linha vencedora
-const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction }) => {
+const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setMlpPrediction }) => {
   const [squares, setSquares] = useState(Array(9).fill(null));
   const [xIsNext, setXIsNext] = useState(true);
   const [gameStatus, setGameStatus] = useState(null);
@@ -83,6 +83,7 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction }) =>
 
     sendArrayToServer(arrayConverted, setKnnPrediction, '/models/knn');
     sendArrayToServer(arrayConverted, setGbPrediction, '/models/gb');
+    sendArrayToServer(arrayConverted, setMlpPrediction, '/models/mlp');
   };
 
   const renderSquare = (i) => (
@@ -139,6 +140,7 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction }) =>
 function App() { 
   const [knnPrediction, setKnnPrediction] = useState('');
   const [gbPrediction, setGbPrediction] = useState('');
+  const [mlpPrediction, setMlpPrediction] = useState(''); // Adicionado para o MLP
   const [winCounts, setWinCounts] = useState({ X: 0, O: 0 });
 
   const handleWinnerCount = (winner) => {
@@ -160,6 +162,7 @@ function App() {
         winnerCount={handleWinnerCount} 
         setKnnPrediction={setKnnPrediction} 
         setGbPrediction={setGbPrediction}
+        setMlpPrediction={setMlpPrediction} // Adicionado para o MLP
       />
       <div className={styles.scoreBoard}>
         <p>X Wins: {winCounts.X}</p>
@@ -177,16 +180,12 @@ function App() {
               <td>{knnPrediction}</td>
             </tr>
             <tr>
-              <td>Predição do Gradient Booster </td>
+              <td>Predição do Gradient Booster</td>
               <td>{gbPrediction}</td>
             </tr>
-            {/* <tr>
-              <td>Predição da Árvore de Decisão</td>
-              <td>{decisionTreePrediction}</td>
-            </tr> */}
             <tr>
-              {/* <td>Predição do MLP</td>
-              <td>{mlpPrediction}</td> */}
+              <td>Predição do MLP</td>
+              <td>{mlpPrediction}</td> {/* Exibe a previsão do MLP */}
             </tr>
           </tbody>
         </table>
