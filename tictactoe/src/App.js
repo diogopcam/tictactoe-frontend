@@ -46,7 +46,10 @@ const sendGameStatus = (squares, setRealOutcome) => {
   } else {
     status = 'tem jogo';
   }
-  setRealOutcome(status); // Define o resultado real do jogo
+  
+  // Atualiza o estado de resultados reais, armazenando todos os resultados
+  setRealOutcome((prevOutcomes) => [...prevOutcomes, status]); // Armazena todos os resultados
+  
   return status;
 };
 
@@ -221,8 +224,19 @@ function App() {
   const [knnPrediction, setKnnPrediction] = useState('');
   const [gbPrediction, setGbPrediction] = useState([]); // Inicializa como um array vazio
   const [mlpPrediction, setMlpPrediction] = useState(''); 
-  const [realOutcome, setRealOutcome] = useState('');
+  const [realOutcome, setRealOutcome] = useState([]);
   const [winCounts, setWinCounts] = useState({ X: 0, O: 0 });
+
+  // Função para calcular e atualizar a acurácia
+  const updateAccuracy = (currentPrediction) => {
+    const totalOutcomes = realOutcome.length;
+    const correctPredictions = realOutcome.filter(outcome => outcome === currentPrediction).length;
+
+    if (totalOutcomes > 0) {
+      const accuracy = (correctPredictions / totalOutcomes) * 100;
+      setAccuracy(accuracy); // Atualiza a acurácia
+    }
+  };
 
   const handleWinnerCount = (winner) => {
     setWinCounts((prevCounts) => ({
@@ -261,23 +275,28 @@ function App() {
             <tr>
               <td>KNN</td>
               <td>{knnPrediction}</td>
-              <td>{realOutcome}</td>
+              <td>{realOutcome[realOutcome.length -1 ]}</td>
             </tr>
             <tr>
               <td>Gradient Boosting</td>
               <td>{gbPrediction[gbPrediction.length - 1]}</td> {/* Exibe a última previsão do Gradient Boosting */}
-              <td>{realOutcome}</td>
+              <td>{realOutcome[realOutcome.length -1 ]}</td>
             </tr>
             <tr>
               <td>MLP</td>
               <td>{mlpPrediction}</td>
-              <td>{realOutcome}</td>
+              <td>{realOutcome[realOutcome.length -1 ]}</td>
             </tr>
              {/* Nova seção para exibir as classificações do GB */}
       <div className={styles.gbClassifications}>
         <h2>Classificações do Gradient Boosting</h2>
         <p>{gbPrediction.join(', ')}</p> {/* Exibe todas as classificações do GB */}
       </div>
+      <div className={styles.gbClassifications}>
+        <h2>Resultados reais do jogo</h2>
+        <p>{realOutcome.join(', ')}</p> {/* Exibe todas as classificações do GB */}
+      </div>
+      <p>Acurácia do Modelo: {accuracy.toFixed(2)}%</p> {/* Exibe a acurácia */}
           </tbody>
         </table>
       </div>
