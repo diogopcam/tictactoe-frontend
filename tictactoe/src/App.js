@@ -19,6 +19,7 @@ const sendArrayToServer = async (arrayData, setPrediction, endpoint) => {
 };
 
 const sendArrayToServerGb = async (arrayData, setGbPrediction, endpoint) => {
+
   try {
     const response = await axios.post(`http://127.0.0.1:5000/${endpoint}`, arrayData, {
       headers: {
@@ -28,7 +29,6 @@ const sendArrayToServerGb = async (arrayData, setGbPrediction, endpoint) => {
     console.log('Resposta do servidor:', response.data);
 
     setGbPrediction((prevPredictions) => [...prevPredictions, response.data.prediction]);
-
     return response.data.prediction; // Retorna a predição
   } catch (error) {
     console.error('Erro ao enviar o array:', error);
@@ -85,7 +85,7 @@ const Square = ({ value, onClick, isWinning }) => (
 );
 
 // Componente Board com lógica de jogo e destaque para a linha vencedora
-const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setMlpPrediction, setRealOutcome }) => {
+const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setMlpPrediction, setRealOutcome, updateAccuracy }) => {
   const [squares, setSquares] = useState(Array(9).fill(null));
   const [xIsNext, setXIsNext] = useState(true);
   const [gameStatus, setGameStatus] = useState(null);
@@ -113,6 +113,8 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setM
     sendArrayToServer(arrayConvertedX, setKnnPrediction, '/models/knn');
     sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb');
     sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
+    
+    updateAccuracy();
 
     const { winner, line } = calculateWinner(newSquares);
     if (winner) {
@@ -227,17 +229,6 @@ function App() {
   const [realOutcome, setRealOutcome] = useState([]);
   const [winCounts, setWinCounts] = useState({ X: 0, O: 0 });
 
-  // Função para calcular e atualizar a acurácia
-  const updateAccuracy = (currentPrediction) => {
-    const totalOutcomes = realOutcome.length;
-    const correctPredictions = realOutcome.filter(outcome => outcome === currentPrediction).length;
-
-    if (totalOutcomes > 0) {
-      const accuracy = (correctPredictions / totalOutcomes) * 100;
-      setAccuracy(accuracy); // Atualiza a acurácia
-    }
-  };
-
   const handleWinnerCount = (winner) => {
     setWinCounts((prevCounts) => ({
       ...prevCounts,
@@ -249,6 +240,18 @@ function App() {
     // Lógica para reiniciar ou preparar um novo jogo
   };
 
+  // Função para calcular e atualizar a acurácia
+  const updateAccuracy = () => {
+    const totalOutcomes = realOutcome.length;
+    const correctPredictions = realOutcome.filter((outcome, index) => outcome === gbPrediction[index]).length;
+
+    if (totalOutcomes > 0) {
+        const accuracy = (correctPredictions / totalOutcomes) * 100;
+        setAccuracy(accuracy); // Atualiza a acurácia
+        console.log(`Esse é o total de acurácia:${accuracy}`)
+    }
+  };
+
   return (
     <div className={styles.App}>
       <h1>Tic Tac Toe</h1>
@@ -258,7 +261,8 @@ function App() {
         setKnnPrediction={setKnnPrediction}
         setGbPrediction={setGbPrediction}
         setMlpPrediction={setMlpPrediction}
-        setRealOutcome={setRealOutcome}
+        setRealOutcome={setRealOutcome} 
+        updateAccuracy={updateAccuracy}
       />
       <div className={styles.scoreBoard}>
         <p>X Wins: {winCounts.X}</p>
