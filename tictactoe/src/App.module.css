@@ -108,3 +108,20 @@ h1 {
 .predictionTable td {
   background-color: #f9f9f9;
 }
+
+.correctPrediction {
+  animation: highlight 1.5s ease-in-out;
+  background-color: #c8e6c9; /* Cor de fundo verde clara para destacar */
+}
+
+@keyframes highlight {
+  0% {
+    background-color: #f9f9f9;
+  }
+  50% {
+    background-color: #c8e6c9;
+  }
+  100% {
+    background-color: #f9f9f9;
+  }
+}
