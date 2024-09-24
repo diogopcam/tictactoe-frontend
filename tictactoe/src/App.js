@@ -28,7 +28,7 @@ const Square = ({ value, onClick, isWinning }) => (
 );
 
 // Componente Board com lógica de jogo e destaque para a linha vencedora
-const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction }) => {
+const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setMlpPrediction }) => {
   const [squares, setSquares] = useState(Array(9).fill(null));
   const [xIsNext, setXIsNext] = useState(true);
   const [gameStatus, setGameStatus] = useState(null);
@@ -56,34 +56,77 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction }) =>
 
   const handleClick = (i) => {
     const newSquares = squares.slice();
-    if (gameStatus || squares[i]) return;
-    newSquares[i] = xIsNext ? 'X' : 'O';
+    if (gameStatus || squares[i]) return; // Se o jogo já tiver acabado ou a célula estiver ocupada, não faz nada
+  
+    // Jogada do "X" pelo jogador
+    newSquares[i] = 'X';
     setSquares(newSquares);
-    setXIsNext(!xIsNext);
-    
-    const { winner, line } = calculateWinner(newSquares);
-    if (winner) {
-      setGameStatus(`Winner: ${winner}`);
-      setWinningLine(line);
-      winnerCount(winner);
-    } else if (!newSquares.includes(null)) {
-      setGameStatus('Draw');
-    } else {
-      setGameStatus(null);
-      setWinningLine([]);
-    }
-
-    // Enviar o estado do tabuleiro para todos os modelos
-    const arrayConverted = newSquares.map(value =>
+    setXIsNext(false); // Depois do jogador, é a vez do "O"
+  
+    // Envia o estado do tabuleiro para os modelos de IA após a jogada do "X"
+    const arrayConvertedX = newSquares.map(value =>
       value === null ? 0 :
       value === "X" ? 1 :
       value === "O" ? -1 :
       value
     );
-
-    sendArrayToServer(arrayConverted, setKnnPrediction, '/models/knn');
-    sendArrayToServer(arrayConverted, setGbPrediction, '/models/gb');
+  
+    sendArrayToServer(arrayConvertedX, setKnnPrediction, '/models/knn');
+    sendArrayToServer(arrayConvertedX, setGbPrediction, '/models/gb');
+    sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
+  
+    const { winner, line } = calculateWinner(newSquares);
+    if (winner) {
+      setGameStatus(`Winner: ${winner}`);
+      setWinningLine(line);
+      winnerCount(winner);
+      return; // Para o jogo se houver um vencedor
+    }
+  
+    // Verifica se há empate
+    if (!newSquares.includes(null)) {
+      setGameStatus('Draw');
+      return;
+    }
+  
+    // Jogada do "O" pelo computador
+    setTimeout(() => {
+      const emptySquares = newSquares
+        .map((value, index) => (value === null ? index : null))
+        .filter(index => index !== null); // Lista de índices das casas vazias
+  
+      if (emptySquares.length > 0) {
+        const randomIndex = Math.floor(Math.random() * emptySquares.length); // Escolhe um índice aleatório
+        const oMove = emptySquares[randomIndex]; // Pega a casa vazia correspondente
+        newSquares[oMove] = 'O'; // Marca o "O" no tabuleiro
+        setSquares(newSquares);
+  
+        // Envia o estado do tabuleiro para os modelos de IA após a jogada do "O"
+        const arrayConvertedO = newSquares.map(value =>
+          value === null ? 0 :
+          value === "X" ? 1 :
+          value === "O" ? -1 :
+          value
+        );
+  
+        sendArrayToServer(arrayConvertedO, setKnnPrediction, '/models/knn');
+        sendArrayToServer(arrayConvertedO, setGbPrediction, '/models/gb');
+        sendArrayToServer(arrayConvertedO, setMlpPrediction, '/models/mlp');
+  
+        const { winner, line } = calculateWinner(newSquares);
+        if (winner) {
+          setGameStatus(`Winner: ${winner}`);
+          setWinningLine(line);
+          winnerCount(winner);
+        } else if (!newSquares.includes(null)) {
+          setGameStatus('Draw');
+        } else {
+          setXIsNext(true); // Volta a vez para o jogador "X"
+        }
+      }
+    }, 1000); // Pequeno atraso para simular o "pensar" do computador
   };
+  
 
   const renderSquare = (i) => (
     <Square
@@ -139,6 +182,7 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction }) =>
 function App() { 
   const [knnPrediction, setKnnPrediction] = useState('');
   const [gbPrediction, setGbPrediction] = useState('');
+  const [mlpPrediction, setMlpPrediction] = useState(''); // Adicionado para o MLP
   const [winCounts, setWinCounts] = useState({ X: 0, O: 0 });
 
   const handleWinnerCount = (winner) => {
@@ -160,6 +204,7 @@ function App() {
         winnerCount={handleWinnerCount} 
         setKnnPrediction={setKnnPrediction} 
         setGbPrediction={setGbPrediction}
+        setMlpPrediction={setMlpPrediction} // Adicionado para o MLP
       />
       <div className={styles.scoreBoard}>
         <p>X Wins: {winCounts.X}</p>
@@ -177,16 +222,12 @@ function App() {
               <td>{knnPrediction}</td>
             </tr>
             <tr>
-              <td>Predição do Gradient Booster </td>
+              <td>Predição do Gradient Booster</td>
               <td>{gbPrediction}</td>
             </tr>
-            {/* <tr>
-              <td>Predição da Árvore de Decisão</td>
-              <td>{decisionTreePrediction}</td>
-            </tr> */}
             <tr>
-              {/* <td>Predição do MLP</td>
-              <td>{mlpPrediction}</td> */}
+              <td>Predição do MLP</td>
+              <td>{mlpPrediction}</td> {/* Exibe a previsão do MLP */}
             </tr>
           </tbody>
         </table>
