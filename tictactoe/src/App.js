@@ -12,6 +12,24 @@ const sendArrayToServer = async (arrayData, setPrediction, endpoint) => {
     });
     console.log('Resposta do servidor:', response.data);
     setPrediction(response.data.prediction);
+    return response.data.prediction; // Retorna a predição
+  } catch (error) {
+    console.error('Erro ao enviar o array:', error);
+  }
+};
+
+const sendArrayToServerGb = async (arrayData, setGbPrediction, endpoint) => {
+  try {
+    const response = await axios.post(`http://127.0.0.1:5000/${endpoint}`, arrayData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('Resposta do servidor:', response.data);
+
+    setGbPrediction((prevPredictions) => [...prevPredictions, response.data.prediction]);
+
+    return response.data.prediction; // Retorna a predição
   } catch (error) {
     console.error('Erro ao enviar o array:', error);
   }
@@ -22,7 +40,7 @@ const sendGameStatus = (squares, setRealOutcome) => {
   const winnerData = calculateWinner(squares);
   let status;
   if (winnerData.winner) {
-    status = `${winnerData.winner} ganha`;
+    status = `${winnerData.winner.toLowerCase()} ganha`;
   } else if (!squares.includes(null)) {
     status = 'empate';
   } else {
@@ -90,7 +108,7 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setM
 
     // Envia para os modelos de IA
     sendArrayToServer(arrayConvertedX, setKnnPrediction, '/models/knn');
-    sendArrayToServer(arrayConvertedX, setGbPrediction, '/models/gb');
+    sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb');
     sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
 
     const { winner, line } = calculateWinner(newSquares);
@@ -128,9 +146,10 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setM
         // Atualiza o status do jogo com o resultado correto
         sendGameStatus(newSquares, setRealOutcome);
 
-        sendArrayToServer(arrayConvertedO, setKnnPrediction, '/models/knn');
-        sendArrayToServer(arrayConvertedO, setGbPrediction, '/models/gb');
-        sendArrayToServer(arrayConvertedO, setMlpPrediction, '/models/mlp');
+        // Envia para os modelos de IA
+        sendArrayToServer(arrayConvertedX, setKnnPrediction, '/models/knn');
+        sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb');
+        sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
 
         const { winner, line } = calculateWinner(newSquares);
         if (winner) {
@@ -197,9 +216,10 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setM
   );
 };
 
-function App() {
+function App() {  
+  const [accuracy, setAccuracy] = useState(0); // Para armazenar a acurácia
   const [knnPrediction, setKnnPrediction] = useState('');
-  const [gbPrediction, setGbPrediction] = useState('');
+  const [gbPrediction, setGbPrediction] = useState([]); // Inicializa como um array vazio
   const [mlpPrediction, setMlpPrediction] = useState(''); 
   const [realOutcome, setRealOutcome] = useState('');
   const [winCounts, setWinCounts] = useState({ X: 0, O: 0 });
@@ -212,7 +232,7 @@ function App() {
   };
 
   const handleNewGame = () => {
-    // No action needed for this button, it's just for restarting the game
+    // Lógica para reiniciar ou preparar um novo jogo
   };
 
   return (
@@ -239,20 +259,25 @@ function App() {
           </thead>
           <tbody>
             <tr>
-              <td>Predição do KNN</td>
+              <td>KNN</td>
               <td>{knnPrediction}</td>
               <td>{realOutcome}</td>
             </tr>
             <tr>
-              <td>Predição do Gradient Booster</td>
-              <td>{gbPrediction}</td>
+              <td>Gradient Boosting</td>
+              <td>{gbPrediction[gbPrediction.length - 1]}</td> {/* Exibe a última previsão do Gradient Boosting */}
               <td>{realOutcome}</td>
             </tr>
             <tr>
-              <td>Predição do MLP</td>
+              <td>MLP</td>
               <td>{mlpPrediction}</td>
               <td>{realOutcome}</td>
             </tr>
+             {/* Nova seção para exibir as classificações do GB */}
+      <div className={styles.gbClassifications}>
+        <h2>Classificações do Gradient Boosting</h2>
+        <p>{gbPrediction.join(', ')}</p> {/* Exibe todas as classificações do GB */}
+      </div>
           </tbody>
         </table>
       </div>
