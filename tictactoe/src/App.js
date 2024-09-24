@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './App.module.css';
 import axios from 'axios';
+
 
 // Função que envia o estado do tabuleiro para o servidor
 const sendArrayToServer = async (arrayData, setPrediction, endpoint) => {
@@ -108,26 +109,12 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setM
 
     // Atualiza o status do jogo com o resultado correto
     sendGameStatus(newSquares, setRealOutcome);
-
     // Envia para os modelos de IA
     sendArrayToServer(arrayConvertedX, setKnnPrediction, '/models/knn');
     sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb');
     sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
-    
-    updateAccuracy();
-
-    const { winner, line } = calculateWinner(newSquares);
-    if (winner) {
-      setGameStatus(`Winner: ${winner}`);
-      setWinningLine(line);
-      winnerCount(winner);
-      return;
-    }
-
-    if (!newSquares.includes(null)) {
-      setGameStatus('Draw');
-      return;
-    }
+    // updateAccuracy();
+  
 
     // Jogada do computador (O)
     setTimeout(() => {
@@ -148,6 +135,7 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setM
           value
         );
 
+
         // Atualiza o status do jogo com o resultado correto
         sendGameStatus(newSquares, setRealOutcome);
 
@@ -156,16 +144,7 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setM
         sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb');
         sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
 
-        const { winner, line } = calculateWinner(newSquares);
-        if (winner) {
-          setGameStatus(`Winner: ${winner}`);
-          setWinningLine(line);
-          winnerCount(winner);
-        } else if (!newSquares.includes(null)) {
-          setGameStatus('Draw');
-        } else {
-          setXIsNext(true);
-        }
+        // updateAccuracy();
       }
     }, 1000);
   };
@@ -240,17 +219,44 @@ function App() {
     // Lógica para reiniciar ou preparar um novo jogo
   };
 
-  // Função para calcular e atualizar a acurácia
-  const updateAccuracy = () => {
-    const totalOutcomes = realOutcome.length;
-    const correctPredictions = realOutcome.filter((outcome, index) => outcome === gbPrediction[index]).length;
+  // useEffect para calcular a acurácia quando os resultados reais ou as predições mudarem
+  useEffect(() => {
+    const updateAccuracy = () => {
+      const totalOutcomes = realOutcome.length;
 
-    if (totalOutcomes > 0) {
+      // Verifica se os arrays têm o mesmo comprimento
+      if (totalOutcomes === gbPrediction.length && totalOutcomes > 0) {
+        let correctPredictions = 0;
+
+        // Loop para contar predições corretas
+        for (let i = 0; i < totalOutcomes; i++) {
+          const realValue = String(realOutcome[i]).trim(); // Normaliza o valor real
+          const predictedValue = String(gbPrediction[i]).trim(); // Normaliza a predição
+
+          console.log(`Comparando real: "${realValue}" com predição: "${predictedValue}"`);
+
+          if (realValue === predictedValue) {
+            correctPredictions++;
+          }
+        }
+
+        // Cálculo da acurácia
         const accuracy = (correctPredictions / totalOutcomes) * 100;
         setAccuracy(accuracy); // Atualiza a acurácia
-        console.log(`Esse é o total de acurácia:${accuracy}`)
-    }
-  };
+        console.log(`Esse é o total de acurácia: ${accuracy.toFixed(2)}%`);
+        
+        console.log(`Número total de resultados: ${totalOutcomes}`);
+        console.log(`Esse é o array de resultados reais: ${realOutcome}`);
+        console.log(`Esse é o array de predições: ${gbPrediction}`);
+        
+      } else {
+        console.error('Os arrays de resultados reais e predições têm comprimentos diferentes ou estão vazios!');
+      }
+    };
+
+    // Chama a função de atualização de acurácia
+    updateAccuracy();
+  }, [realOutcome, gbPrediction]);
 
   return (
     <div className={styles.App}>
@@ -262,11 +268,10 @@ function App() {
         setGbPrediction={setGbPrediction}
         setMlpPrediction={setMlpPrediction}
         setRealOutcome={setRealOutcome} 
-        updateAccuracy={updateAccuracy}
+        // updateAccuracy={updateAccuracy}
       />
       <div className={styles.scoreBoard}>
-        <p>X Wins: {winCounts.X}</p>
-        <p>O Wins: {winCounts.O}</p>
+        <p> Acurácia do Gradient Booster {accuracy.toFixed(2)}%</p>
         <table className={styles.predictionTable}>
           <thead>
             <tr>
