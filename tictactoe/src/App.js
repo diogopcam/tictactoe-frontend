@@ -19,7 +19,7 @@ const sendArrayToServer = async (arrayData, setPrediction, endpoint) => {
   }
 };
 
-const sendArrayToServerGb = async (arrayData, setGbPrediction, endpoint) => {
+const sendArrayToServerGb = async (arrayData, setGbPrediction, endpoint, setIsGameOver, setGameStatus, handleRestart) => {
 
   try {
     const response = await axios.post(`http://127.0.0.1:5000/${endpoint}`, arrayData, {
@@ -28,7 +28,6 @@ const sendArrayToServerGb = async (arrayData, setGbPrediction, endpoint) => {
       },
     });
     console.log('Resposta do servidor:', response.data);
-
     setGbPrediction((prevPredictions) => [...prevPredictions, response.data.prediction]);
     return response.data.prediction; // Retorna a predição
   } catch (error) {
@@ -85,17 +84,17 @@ const Square = ({ value, onClick, isWinning }) => (
   </button>
 );
 
-// Componente Board com lógica de jogo e destaque para a linha vencedora
 const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setMlpPrediction, setRealOutcome, updateAccuracy }) => {
   const [squares, setSquares] = useState(Array(9).fill(null));
   const [xIsNext, setXIsNext] = useState(true);
   const [gameStatus, setGameStatus] = useState(null);
   const [winningLine, setWinningLine] = useState([]);
+  const [isGameOver, setIsGameOver] = useState(false); // Novo estado para controlar o fim do jogo
 
   const handleClick = (i) => {
-    const newSquares = squares.slice();
-    if (gameStatus || squares[i]) return;
+    if (isGameOver || squares[i]) return; // Impede novas jogadas se o jogo acabou ou a casa já foi clicada
 
+    const newSquares = squares.slice();
     newSquares[i] = 'X';
     setSquares(newSquares);
     setXIsNext(false);
@@ -109,12 +108,11 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setM
 
     // Atualiza o status do jogo com o resultado correto
     sendGameStatus(newSquares, setRealOutcome);
+
     // Envia para os modelos de IA
     sendArrayToServer(arrayConvertedX, setKnnPrediction, '/models/knn');
-    sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb');
+    sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
     sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
-    // updateAccuracy();
-  
 
     // Jogada do computador (O)
     setTimeout(() => {
@@ -122,7 +120,7 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setM
         .map((value, index) => (value === null ? index : null))
         .filter(index => index !== null);
 
-      if (emptySquares.length > 0) {
+      if (emptySquares.length > 0 && !isGameOver) {
         const randomIndex = Math.floor(Math.random() * emptySquares.length);
         const oMove = emptySquares[randomIndex];
         newSquares[oMove] = 'O';
@@ -135,19 +133,30 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setM
           value
         );
 
-
         // Atualiza o status do jogo com o resultado correto
         sendGameStatus(newSquares, setRealOutcome);
 
-        // Envia para os modelos de IA
-        sendArrayToServer(arrayConvertedX, setKnnPrediction, '/models/knn');
-        sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb');
-        sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
-
-        // updateAccuracy();
+        // Envia para os modelos de IA novamente
+        sendArrayToServer(arrayConvertedO, setKnnPrediction, '/models/knn');
+        sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
+        sendArrayToServer(arrayConvertedO, setMlpPrediction, '/models/mlp');
       }
     }, 1000);
   };
+
+  const handleRestart = () => {
+    setSquares(Array(9).fill(null));
+    setXIsNext(true);
+    setGameStatus(null);
+    setWinningLine([]);
+    setIsGameOver(false); // Reinicia o estado do jogo
+  };
+
+  const handleNewGame = () => {
+    handleRestart();
+    onNewGame();
+  };
+
 
   const renderSquare = (i) => (
     <Square
@@ -157,18 +166,6 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setM
       isWinning={winningLine.includes(i)}
     />
   );
-
-  const handleRestart = () => {
-    setSquares(Array(9).fill(null));
-    setXIsNext(true);
-    setGameStatus(null);
-    setWinningLine([]);
-  };
-
-  const handleNewGame = () => {
-    handleRestart();
-    onNewGame();
-  };
 
   return (
     <div>
@@ -297,15 +294,6 @@ function App() {
               <td>{realOutcome[realOutcome.length -1 ]}</td>
             </tr>
              {/* Nova seção para exibir as classificações do GB */}
-      <div className={styles.gbClassifications}>
-        <h2>Classificações do Gradient Boosting</h2>
-        <p>{gbPrediction.join(', ')}</p> {/* Exibe todas as classificações do GB */}
-      </div>
-      <div className={styles.gbClassifications}>
-        <h2>Resultados reais do jogo</h2>
-        <p>{realOutcome.join(', ')}</p> {/* Exibe todas as classificações do GB */}
-      </div>
-      <p>Acurácia do Modelo: {accuracy.toFixed(2)}%</p> {/* Exibe a acurácia */}
           </tbody>
         </table>
       </div>
