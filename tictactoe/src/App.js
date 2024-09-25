@@ -20,7 +20,6 @@ const sendArrayToServer = async (arrayData, setPrediction, endpoint) => {
 };
 
 const sendArrayToServerGb = async (arrayData, setGbPrediction, endpoint, setIsGameOver, setGameStatus, handleRestart) => {
-
   try {
     const response = await axios.post(`http://127.0.0.1:5000/${endpoint}`, arrayData, {
       headers: {
@@ -28,8 +27,24 @@ const sendArrayToServerGb = async (arrayData, setGbPrediction, endpoint, setIsGa
       },
     });
     console.log('Resposta do servidor:', response.data);
-    setGbPrediction((prevPredictions) => [...prevPredictions, response.data.prediction]);
-    return response.data.prediction; // Retorna a predição
+    
+    const prediction = response.data.prediction;
+
+    // Armazena a predição
+    setGbPrediction((prevPredictions) => [...prevPredictions, prediction]);
+
+    // Verifica se a predição é de vitória ou empate e reinicia o jogo se for o caso
+    // Converte prediction para string (caso não seja) e verifica se a predição é de vitória ou empate
+    if (String(prediction) === 'x ganha' || String(prediction) === 'o ganha' || String(prediction) === 'empate') {
+      setIsGameOver(true); // Define o jogo como encerrado
+      setGameStatus(prediction); // Atualiza o status do jogo
+      // Chama o reinício do jogo após um breve intervalo
+      setTimeout(() => {
+        handleRestart();
+      }); // Tempo de 2 segundos antes de reiniciar o jogo para dar um feedback visual
+    }
+
+    return prediction; // Retorna a predição
   } catch (error) {
     console.error('Erro ao enviar o array:', error);
   }
@@ -84,7 +99,7 @@ const Square = ({ value, onClick, isWinning }) => (
   </button>
 );
 
-const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setMlpPrediction, setRealOutcome, updateAccuracy }) => {
+const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction, setRealOutcome, updateAccuracy }) => {
   const [squares, setSquares] = useState(Array(9).fill(null));
   const [xIsNext, setXIsNext] = useState(true);
   const [gameStatus, setGameStatus] = useState(null);
@@ -93,57 +108,64 @@ const Board = ({ onNewGame, winnerCount, setKnnPrediction, setGbPrediction, setM
 
   const handleClick = (i) => {
     if (isGameOver || squares[i]) return; // Impede novas jogadas se o jogo acabou ou a casa já foi clicada
-
+  
     const newSquares = squares.slice();
     newSquares[i] = 'X';
     setSquares(newSquares);
     setXIsNext(false);
-
+  
     const arrayConvertedX = newSquares.map(value =>
       value === null ? 0 :
       value === "X" ? 1 :
       value === "O" ? -1 :
       value
     );
-
+  
     // Atualiza o status do jogo com o resultado correto
-    sendGameStatus(newSquares, setRealOutcome);
-
-    // Envia para os modelos de IA
-    sendArrayToServer(arrayConvertedX, setKnnPrediction, '/models/knn');
-    sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
-    sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
-
-    // Jogada do computador (O)
-    setTimeout(() => {
-      const emptySquares = newSquares
-        .map((value, index) => (value === null ? index : null))
-        .filter(index => index !== null);
-
-      if (emptySquares.length > 0 && !isGameOver) {
-        const randomIndex = Math.floor(Math.random() * emptySquares.length);
-        const oMove = emptySquares[randomIndex];
-        newSquares[oMove] = 'O';
-        setSquares(newSquares);
-
-        const arrayConvertedO = newSquares.map(value =>
-          value === null ? 0 :
-          value === "X" ? 1 :
-          value === "O" ? -1 :
-          value
-        );
-
-        // Atualiza o status do jogo com o resultado correto
-        sendGameStatus(newSquares, setRealOutcome);
-
-        // Envia para os modelos de IA novamente
-        sendArrayToServer(arrayConvertedO, setKnnPrediction, '/models/knn');
-        sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
-        sendArrayToServer(arrayConvertedO, setMlpPrediction, '/models/mlp');
-      }
-    }, 1000);
+    const gameStatus = sendGameStatus(newSquares, setRealOutcome);
+  
+    // Verifica se o jogo acabou antes de enviar para os modelos
+    if (!isGameOver) {
+      // Envia para os modelos de IA
+      sendArrayToServer(arrayConvertedX, setKnnPrediction, '/models/knn');
+      sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
+      sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
+    }
+  
+    // Jogada do computador (O) - só ocorre se o jogo não estiver terminado
+    if (!isGameOver && gameStatus === 'tem jogo') {
+      setTimeout(() => {
+        const emptySquares = newSquares
+          .map((value, index) => (value === null ? index : null))
+          .filter(index => index !== null);
+  
+        if (emptySquares.length > 0 && !isGameOver) {
+          const randomIndex = Math.floor(Math.random() * emptySquares.length);
+          const oMove = emptySquares[randomIndex];
+          newSquares[oMove] = 'O';
+          setSquares(newSquares);
+  
+          const arrayConvertedO = newSquares.map(value =>
+            value === null ? 0 :
+            value === "X" ? 1 :
+            value === "O" ? -1 :
+            value
+          );
+  
+          // Atualiza o status do jogo com o resultado correto
+          sendGameStatus(newSquares, setRealOutcome);
+  
+          // Verifica se o jogo acabou antes de enviar para os modelos novamente
+          if (!isGameOver) {
+            sendArrayToServer(arrayConvertedO, setKnnPrediction, '/models/knn');
+            sendArrayToServerGb(arrayConvertedO, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
+            sendArrayToServer(arrayConvertedO, setMlpPrediction, '/models/mlp');
+          }
+        }
+      }, 1000);
+    }
   };
-
+  
   const handleRestart = () => {
     setSquares(Array(9).fill(null));
     setXIsNext(true);
@@ -203,14 +225,6 @@ function App() {
   const [gbPrediction, setGbPrediction] = useState([]); // Inicializa como um array vazio
   const [mlpPrediction, setMlpPrediction] = useState(''); 
   const [realOutcome, setRealOutcome] = useState([]);
-  const [winCounts, setWinCounts] = useState({ X: 0, O: 0 });
-
-  const handleWinnerCount = (winner) => {
-    setWinCounts((prevCounts) => ({
-      ...prevCounts,
-      [winner]: prevCounts[winner] + 1,
-    }));
-  };
 
   const handleNewGame = () => {
     // Lógica para reiniciar ou preparar um novo jogo
@@ -260,7 +274,6 @@ function App() {
       <h1>Tic Tac Toe</h1>
       <Board
         onNewGame={handleNewGame}
-        winnerCount={handleWinnerCount}
         setKnnPrediction={setKnnPrediction}
         setGbPrediction={setGbPrediction}
         setMlpPrediction={setMlpPrediction}
