@@ -191,7 +191,7 @@ const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction,
 
   return (
     <div>
-      <div className={styles.status}>{gameStatus || `Next player: ${xIsNext ? 'X' : 'O'}`}</div>
+      {/* <div className={styles.status}>{gameStatus || `Next player: ${xIsNext ? 'X' : 'O'}`}</div> */}
       <div className={styles.boardRow}>
         {renderSquare(0)}
         {renderSquare(1)}
