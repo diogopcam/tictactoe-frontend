@@ -230,41 +230,43 @@ function App() {
     // Lógica para reiniciar ou preparar um novo jogo
   };
 
+  const updateAccuracy = () => {
+    const totalOutcomes = realOutcome.length;
+
+    console.log(`Total de resultados ${totalOutcomes}`)
+    console.log(`Total de predicoes do gbPrediction ${gbPrediction.length}`)
+
+    // Verifica se os arrays têm o mesmo comprimento
+    if (totalOutcomes === gbPrediction.length && totalOutcomes > 0) {
+      let correctPredictions = 0;
+
+      // Loop para contar predições corretas
+      for (let i = 0; i < totalOutcomes; i++) {
+        const realValue = String(realOutcome[i]).trim(); // Normaliza o valor real
+        const predictedValue = String(gbPrediction[i]).trim(); // Normaliza a predição
+
+        console.log(`Comparando real: "${realValue}" com predição: "${predictedValue}"`);
+
+        if (realValue === predictedValue) {
+          correctPredictions++;
+        }
+      }
+
+      // Cálculo da acurácia
+      const accuracy = (correctPredictions / totalOutcomes) * 100;
+      setAccuracy(accuracy); // Atualiza a acurácia
+      console.log(`Esse é o total de acurácia: ${accuracy.toFixed(2)}%`);
+      console.log(`Número total de resultados: ${totalOutcomes}`);
+      console.log(`Esse é o array de resultados reais: ${realOutcome}`);
+      console.log(`Esse é o array de predições: ${gbPrediction}`);
+      
+    } else {
+      console.error('Os arrays de resultados reais e predições têm comprimentos diferentes ou estão vazios!');
+    }
+  };
+
   // useEffect para calcular a acurácia quando os resultados reais ou as predições mudarem
   useEffect(() => {
-    const updateAccuracy = () => {
-      const totalOutcomes = realOutcome.length;
-
-      // Verifica se os arrays têm o mesmo comprimento
-      if (totalOutcomes === gbPrediction.length && totalOutcomes > 0) {
-        let correctPredictions = 0;
-
-        // Loop para contar predições corretas
-        for (let i = 0; i < totalOutcomes; i++) {
-          const realValue = String(realOutcome[i]).trim(); // Normaliza o valor real
-          const predictedValue = String(gbPrediction[i]).trim(); // Normaliza a predição
-
-          console.log(`Comparando real: "${realValue}" com predição: "${predictedValue}"`);
-
-          if (realValue === predictedValue) {
-            correctPredictions++;
-          }
-        }
-
-        // Cálculo da acurácia
-        const accuracy = (correctPredictions / totalOutcomes) * 100;
-        setAccuracy(accuracy); // Atualiza a acurácia
-        console.log(`Esse é o total de acurácia: ${accuracy.toFixed(2)}%`);
-        
-        console.log(`Número total de resultados: ${totalOutcomes}`);
-        console.log(`Esse é o array de resultados reais: ${realOutcome}`);
-        console.log(`Esse é o array de predições: ${gbPrediction}`);
-        
-      } else {
-        console.error('Os arrays de resultados reais e predições têm comprimentos diferentes ou estão vazios!');
-      }
-    };
-
     // Chama a função de atualização de acurácia
     updateAccuracy();
   }, [realOutcome, gbPrediction]);
@@ -278,7 +280,7 @@ function App() {
         setGbPrediction={setGbPrediction}
         setMlpPrediction={setMlpPrediction}
         setRealOutcome={setRealOutcome} 
-        // updateAccuracy={updateAccuracy}
+        updateAccuracy={updateAccuracy}
       />
       <div className={styles.scoreBoard}>
         <p> Acurácia do Gradient Booster {accuracy.toFixed(2)}%</p>
