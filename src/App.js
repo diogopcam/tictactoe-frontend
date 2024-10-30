@@ -57,7 +57,7 @@ const sendBoardToMinimax = async (arrayData, difficulty) => {
           board: arrayData,
           difficulty: difficulty
       };
-      
+
       const response = await axios.post(`http://127.0.0.1:5000/play`, payload, {
           headers: {
               'Content-Type': 'application/json',
@@ -201,7 +201,6 @@ const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction,
     onNewGame();
   };
 
-
   const renderSquare = (i) => (
     <Square
       key={i}
@@ -247,6 +246,7 @@ function App() {
   const [gbPrediction, setGbPrediction] = useState([]); // Inicializa como um array vazio
   const [mlpPrediction, setMlpPrediction] = useState(''); 
   const [realOutcome, setRealOutcome] = useState([]);
+  const [difficultyLevel, setDifficultyLevel] = useState(''); 
 
   const handleNewGame = () => {
     // Lógica para reiniciar ou preparar um novo jogo
