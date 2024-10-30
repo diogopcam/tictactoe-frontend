@@ -52,7 +52,6 @@ const sendArrayToServerGb = async (arrayData, setGbPrediction, endpoint, setIsGa
 
 const sendBoardToMinimax = async (arrayData, difficulty) => {
   try {
-
       const payload = {
           board: arrayData,
           difficulty: difficulty
@@ -64,8 +63,8 @@ const sendBoardToMinimax = async (arrayData, difficulty) => {
           },
       });
 
-      console.log('Resposta do servidor da jogada do minimax:', response.data);
-      return response.data; // Retorna a predição
+      console.log('Resposta do servidor da jogada do minimax:', response.data.move);
+      return response.data.move; // Retorna a predição
   } catch (error) {
       console.error('Erro ao enviar o array:', error);
   }
@@ -126,10 +125,11 @@ const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction,
   const [gameStatus, setGameStatus] = useState(null);
   const [winningLine, setWinningLine] = useState([]);
   const [isGameOver, setIsGameOver] = useState(false); // Novo estado para controlar o fim do jogo
-
+  const [nextPlay, setNextPlay] = useState('');
+  
   const handleClick = (i) => {
     if (isGameOver || squares[i]) return; // Impede novas jogadas se o jogo acabou ou a casa já foi clicada
-  
+
     const newSquares = squares.slice();
     newSquares[i] = 'X';
     setSquares(newSquares);
@@ -141,6 +141,8 @@ const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction,
       value === "O" ? -1 :
       value
     );
+
+    // const minimaxPla
   
     // Atualiza o status do jogo com o resultado correto
     const gameStatus = sendGameStatus(newSquares, setRealOutcome);
@@ -151,7 +153,13 @@ const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction,
       sendArrayToServer(arrayConvertedX, setKnnPrediction, '/models/knn');
       sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
       sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
-      sendBoardToMinimax(arrayConvertedX, 'easy');
+      sendBoardToMinimax(arrayConvertedX, 'easy').then(nextPlay => {
+        // Aqui, nextPlay já é o valor resolvido da Promise
+        setNextPlay(nextPlay);
+        console.log("Essa é a próxima jogada do minimax: "+nextPlay);
+      }).catch(error => {
+          console.error("Erro:", error);
+      });
     }
   
     // Jogada do computador (O) - só ocorre se o jogo não estiver terminado
@@ -160,11 +168,11 @@ const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction,
         const emptySquares = newSquares
           .map((value, index) => (value === null ? index : null))
           .filter(index => index !== null);
-  
+          
         if (emptySquares.length > 0 && !isGameOver) {
-          const randomIndex = Math.floor(Math.random() * emptySquares.length);
-          const oMove = emptySquares[randomIndex];
-          newSquares[oMove] = 'O';
+          // const randomIndex = Math.floor(Math.random() * emptySquares.length);
+          // const oMove = emptySquares[randomIndex];
+          newSquares[nextPlay] = 'O';
           setSquares(newSquares);
   
           const arrayConvertedO = newSquares.map(value =>
@@ -251,6 +259,14 @@ function App() {
   const handleNewGame = () => {
     // Lógica para reiniciar ou preparar um novo jogo
   };
+
+  const changeToMedium = () => {
+
+  }
+
+  const changeToHard = () => {
+
+  }
 
   const updateAccuracy = () => {
     const totalOutcomes = realOutcome.length;
