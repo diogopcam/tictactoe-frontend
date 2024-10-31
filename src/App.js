@@ -63,8 +63,8 @@ const sendBoardToMinimax = async (arrayData, difficulty) => {
           },
       });
 
-      console.log('Resposta do servidor da jogada do minimax:', response.data.move);
-      return response.data.move; // Retorna a predição
+      console.log('Resposta do servidor da jogada do minimax:', response.data.best_move);
+      return response.data.best_move; // Retorna a predição
   } catch (error) {
       console.error('Erro ao enviar o array:', error);
   }
@@ -128,13 +128,13 @@ const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction,
   const [nextPlay, setNextPlay] = useState('');
   
   const handleClick = (i) => {
-    if (isGameOver || squares[i]) return; // Impede novas jogadas se o jogo acabou ou a casa já foi clicada
+    if (isGameOver || squares[i]) return;
 
     const newSquares = squares.slice();
     newSquares[i] = 'X';
     setSquares(newSquares);
     setXIsNext(false);
-  
+
     const arrayConvertedX = newSquares.map(value =>
       value === null ? 0 :
       value === "X" ? 1 :
@@ -142,59 +142,43 @@ const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction,
       value
     );
 
-    // const minimaxPla
-  
-    // Atualiza o status do jogo com o resultado correto
     const gameStatus = sendGameStatus(newSquares, setRealOutcome);
-  
-    // Verifica se o jogo acabou antes de enviar para os modelos
+
     if (!isGameOver) {
-      // Envia para os modelos de IA
       sendArrayToServer(arrayConvertedX, setKnnPrediction, '/models/knn');
       sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
       sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
-      sendBoardToMinimax(arrayConvertedX, 'easy').then(nextPlay => {
-        // Aqui, nextPlay já é o valor resolvido da Promise
-        setNextPlay(nextPlay);
-        console.log("Essa é a próxima jogada do minimax: "+nextPlay);
-      }).catch(error => {
-          console.error("Erro:", error);
-      });
-    }
-  
-    // Jogada do computador (O) - só ocorre se o jogo não estiver terminado
-    if (!isGameOver && gameStatus === 'tem jogo') {
-      setTimeout(() => {
-        const emptySquares = newSquares
-          .map((value, index) => (value === null ? index : null))
-          .filter(index => index !== null);
+      
+      // Aqui aguardamos a jogada do Minimax e só então realizamos a jogada de 'O'
+      sendBoardToMinimax(arrayConvertedX, 'hard').then(nextPlay => {
+        if (nextPlay !== null && !isGameOver) {
+          setNextPlay(nextPlay);
+          console.log("Próxima jogada do Minimax: " + nextPlay);
           
-        if (emptySquares.length > 0 && !isGameOver) {
-          // const randomIndex = Math.floor(Math.random() * emptySquares.length);
-          // const oMove = emptySquares[randomIndex];
+          // Faz a jogada do computador com base no `nextPlay`
           newSquares[nextPlay] = 'O';
           setSquares(newSquares);
-  
+
           const arrayConvertedO = newSquares.map(value =>
             value === null ? 0 :
             value === "X" ? 1 :
             value === "O" ? -1 :
             value
           );
-  
-          // Atualiza o status do jogo com o resultado correto
+
           sendGameStatus(newSquares, setRealOutcome);
-  
-          // Verifica se o jogo acabou antes de enviar para os modelos novamente
+
           if (!isGameOver) {
             sendArrayToServer(arrayConvertedO, setKnnPrediction, '/models/knn');
             sendArrayToServerGb(arrayConvertedO, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
             sendArrayToServer(arrayConvertedO, setMlpPrediction, '/models/mlp');
           }
         }
-      }, 1000);
+      }).catch(error => {
+        console.error("Erro:", error);
+      });
     }
-  };
+};
   
   const handleRestart = () => {
     setSquares(Array(9).fill(null));
@@ -260,13 +244,10 @@ function App() {
     // Lógica para reiniciar ou preparar um novo jogo
   };
 
-  const changeToMedium = () => {
-
-  }
-
-  const changeToHard = () => {
-
-  }
+  const changeDifficulty = (level) => {
+    setDifficultyLevel(level);
+    // handleNewGame();
+  };
 
   const updateAccuracy = () => {
     const totalOutcomes = realOutcome.length;
@@ -322,6 +303,9 @@ function App() {
       />
       <div className={styles.scoreBoard}>
         <p> Acurácia do Gradient Booster {accuracy.toFixed(2)}%</p>
+        <button onClick={() => changeDifficulty('easy')}>Easy</button>
+        <button onClick={() => changeDifficulty('medium')}>Medium</button>
+        <button onClick={() => changeDifficulty('hard')}>Hard</button>
         <table className={styles.predictionTable}>
           <thead>
             <tr>
