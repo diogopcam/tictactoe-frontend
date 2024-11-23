@@ -193,6 +193,9 @@ const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction,
     onNewGame();
   };
 
+  // Novo botão para alternar entre a rede neural e o jogador humano
+    // Novo botão para alternar entre a rede neural e o jogador humano
+
   const renderSquare = (i) => (
     <Square
       key={i}
@@ -238,22 +241,32 @@ function App() {
   const [gbPrediction, setGbPrediction] = useState([]); // Inicializa como um array vazio
   const [mlpPrediction, setMlpPrediction] = useState(''); 
   const [realOutcome, setRealOutcome] = useState([]);
-  const [difficultyLevel, setDifficultyLevel] = useState(''); 
+  const [difficultyLevel, setDifficultyLevel] = useState('');
+  const [isNeuralPlaying, setIsNeuralPlaying] = useState(false);  // Novo estado para alternar entre as opções de jogo
 
   const handleNewGame = () => {
     // Lógica para reiniciar ou preparar um novo jogo
+    setAccuracy(0);
+    setKnnPrediction('');
+    setGbPrediction([]);
+    setMlpPrediction('');
+    setRealOutcome([]);
   };
 
   const changeDifficulty = (level) => {
     setDifficultyLevel(level);
-    // handleNewGame();
+    // handleNewGame();  // Pode reiniciar o jogo aqui se necessário
+  };
+
+  const toggleNeuralPlay = () => {
+    setIsNeuralPlaying(prev => !prev);  // Alterna entre true e false
   };
 
   const updateAccuracy = () => {
     const totalOutcomes = realOutcome.length;
 
-    console.log(`Total de resultados ${totalOutcomes}`)
-    console.log(`Total de predicoes do gbPrediction ${gbPrediction.length}`)
+    console.log(`Total de resultados: ${totalOutcomes}`);
+    console.log(`Total de predições do gbPrediction: ${gbPrediction.length}`);
 
     // Verifica se os arrays têm o mesmo comprimento
     if (totalOutcomes === gbPrediction.length && totalOutcomes > 0) {
@@ -287,7 +300,9 @@ function App() {
   // useEffect para calcular a acurácia quando os resultados reais ou as predições mudarem
   useEffect(() => {
     // Chama a função de atualização de acurácia
-    updateAccuracy();
+    if (realOutcome.length > 0 && gbPrediction.length > 0) {
+      updateAccuracy();
+    }
   }, [realOutcome, gbPrediction]);
 
   return (
@@ -300,12 +315,16 @@ function App() {
         setMlpPrediction={setMlpPrediction}
         setRealOutcome={setRealOutcome} 
         updateAccuracy={updateAccuracy}
+        isNeuralPlaying={isNeuralPlaying}  
       />
       <div className={styles.scoreBoard}>
-        <p> Acurácia do Gradient Booster {accuracy.toFixed(2)}%</p>
+        <p> Acurácia do Gradient Booster: {accuracy.toFixed(2)}%</p>
         <button onClick={() => changeDifficulty('easy')}>Easy</button>
         <button onClick={() => changeDifficulty('medium')}>Medium</button>
         <button onClick={() => changeDifficulty('hard')}>Hard</button>
+        <button onClick={toggleNeuralPlay}>
+          {isNeuralPlaying ? 'Jogar contra Minimax' : 'Jogar contra a Rede Neural'}
+        </button>
         <table className={styles.predictionTable}>
           <thead>
             <tr>
@@ -318,19 +337,18 @@ function App() {
             <tr>
               <td>KNN</td>
               <td>{knnPrediction}</td>
-              <td>{realOutcome[realOutcome.length -1 ]}</td>
+              <td>{realOutcome[realOutcome.length - 1] || 'N/A'}</td>
             </tr>
             <tr>
               <td>Gradient Boosting</td>
-              <td>{gbPrediction[gbPrediction.length - 1]}</td> {/* Exibe a última previsão do Gradient Boosting */}
-              <td>{realOutcome[realOutcome.length -1 ]}</td>
+              <td>{gbPrediction[gbPrediction.length - 1] || 'N/A'}</td>
+              <td>{realOutcome[realOutcome.length - 1] || 'N/A'}</td>
             </tr>
             <tr>
               <td>MLP</td>
               <td>{mlpPrediction}</td>
-              <td>{realOutcome[realOutcome.length -1 ]}</td>
+              <td>{realOutcome[realOutcome.length - 1] || 'N/A'}</td>
             </tr>
-             {/* Nova seção para exibir as classificações do GB */}
           </tbody>
         </table>
       </div>
@@ -339,4 +357,3 @@ function App() {
 }
 
 export default App;
-
