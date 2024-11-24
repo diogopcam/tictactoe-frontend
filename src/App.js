@@ -147,7 +147,7 @@ const Square = ({ value, onClick, isWinning }) => (
   </button>
 );
 
-const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction, setRealOutcome, isNeuralPlaying }) => {
+const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction, setRealOutcome, isNeuralPlaying, difficultyLevel }) => {
   const [squares, setSquares] = useState(Array(9).fill(null));
   const [xIsNext, setXIsNext] = useState(true);
   const [gameStatus, setGameStatus] = useState(null);
@@ -156,7 +156,7 @@ const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction,
   const [nextPlay, setNextPlay] = useState('');
 
   console.log("Esse é o valor do isNeuralPlaying: "+isNeuralPlaying);  // Verifique se o valor está sendo passado corretamente
-
+  console.log("Essa é a dificuldade passada: "+difficultyLevel)
   const handleClick = (i) => {
     // Se o jogo acabou ou a posição já está preenchida, não faz nada
     if (isGameOver || squares[i]) return;
@@ -380,6 +380,7 @@ function App() {
         setRealOutcome={setRealOutcome} 
         updateAccuracy={updateAccuracy}
         isNeuralPlaying={isNeuralPlaying}
+        difficultyLevel={difficultyLevel}
       />
       <div className={styles.scoreBoard}>
         <p> Acurácia do Gradient Booster: {accuracy.toFixed(2)}%</p>
