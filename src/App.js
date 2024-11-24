@@ -63,6 +63,7 @@ const sendBoardToMinimax = async (arrayData, difficulty) => {
           },
       });
 
+      console.log("O nível de dificuldade enviado para o Minimax é "+difficulty)
       console.log('Resposta do servidor da jogada do minimax:', response.data.best_move);
       return response.data.best_move; // Retorna a predição
   } catch (error) {
@@ -183,7 +184,7 @@ const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction,
       
       // Se está jogando contra a Rede Neural (isNeuralPlaying é true), aguarda a jogada da IA
       if (isNeuralPlaying) {
-        sendBoardToNeuralNetwork(arrayConvertedX).then(nextPlay => {
+        sendBoardToNeuralNetwork(arrayConvertedX, difficultyLevel).then(nextPlay => {
           if (nextPlay !== null && !isGameOver) {
             console.log("Próxima jogada da Rede Neural: " + nextPlay);
   
@@ -213,7 +214,7 @@ const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction,
   
       // Se está jogando contra o Minimax (isNeuralPlaying é false), aguarda a jogada do Minimax
       } else {
-        sendBoardToMinimax(arrayConvertedX, 'hard').then(nextPlay => {
+        sendBoardToMinimax(arrayConvertedX, difficultyLevel).then(nextPlay => {
           if (nextPlay !== null && !isGameOver) {
             console.log("Próxima jogada do Minimax: " + nextPlay);
   
@@ -232,9 +233,10 @@ const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction,
   
             // Envia para os modelos após a jogada do Minimax
             if (!isGameOver) {
-              sendArrayToServer(arrayConvertedO, setKnnPrediction, '/models/knn');
-              sendArrayToServerGb(arrayConvertedO, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
-              sendArrayToServer(arrayConvertedO, setMlpPrediction, '/models/mlp');
+              console.log("Jogo continua!")
+              // sendArrayToServer(arrayConvertedO, setKnnPrediction, '/models/knn');
+              // sendArrayToServerGb(arrayConvertedO, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
+              // sendArrayToServer(arrayConvertedO, setMlpPrediction, '/models/mlp');
             }
           }
         }).catch(error => {
