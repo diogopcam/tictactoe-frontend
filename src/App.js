@@ -71,31 +71,26 @@ const sendBoardToMinimax = async (arrayData, difficulty) => {
   }
 };
 
-const sendBoardToNeuralNetwork = async (board, difficulty = 'hard') => {
+const sendBoardToNeuralNetwork = async (arrayData) => {
   try {
-    // Exemplo de uma chamada para a API que retorna a próxima jogada
-    const response = await fetch('http://127.0.0.1:5000/play/mlp', {
-      method: 'POST',
+      const payload = {
+        board: arrayData
+      };
+
+      console.log("Esse é o tabuleiro: "+payload.board)
+
+    const response = await axios.post(`http://127.0.0.1:5000/play/mlp`, payload, {
       headers: {
-        'Content-Type': 'application/json',
+          'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        board: board,
-        difficulty: difficulty      // Dificuldade de Minimax
-      }),
     });
 
     console.log("Tabuleiro enviado para o back da rede neural");
-    if (!response.ok) {
-      throw new Error('Erro ao comunicar com a rede neural');
-    }
-
-    console.log('Resposta do servidor da jogada da rede neural:', response.data.best_move);
-    const data = await response.json();
-    return data.best_move; // A resposta inclui a próxima jogada calculada pela IA
+    console.log("Resposta do servidor da jogada da rede neural:"+ response.data.best_move);
+    return response.data.best_move; // A resposta inclui a próxima jogada calculada pela IA
   } catch (error) {
     console.error("Erro ao obter a jogada da rede neural:", error);
-    return null; // Em caso de erro, retorna null
+    return null; // Em caso de erro, sretorna null
   }
 };
 
@@ -178,13 +173,14 @@ const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction,
   
     // Se o jogo não acabou, envia as predições para os modelos
     if (!isGameOver) {
-      sendArrayToServer(arrayConvertedX, setKnnPrediction, '/models/knn');
-      sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
-      sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
+      // sendArrayToServer(arrayConvertedX, setKnnPrediction, '/models/knn');
+      // sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
+      // sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
       
       // Se está jogando contra a Rede Neural (isNeuralPlaying é true), aguarda a jogada da IA
       if (isNeuralPlaying) {
-        sendBoardToNeuralNetwork(arrayConvertedX, difficultyLevel).then(nextPlay => {
+        sendBoardToNeuralNetwork(arrayConvertedX).then(nextPlay => {
+          console.log("Essa é a jogada retornada pela rede neural: "+nextPlay)
           if (nextPlay !== null && !isGameOver) {
             console.log("Próxima jogada da Rede Neural: " + nextPlay);
   
