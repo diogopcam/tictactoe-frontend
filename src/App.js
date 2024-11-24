@@ -57,7 +57,7 @@ const sendBoardToMinimax = async (arrayData, difficulty) => {
           difficulty: difficulty
       };
 
-      const response = await axios.post(`http://127.0.0.1:5000/play`, payload, {
+      const response = await axios.post(`http://127.0.0.1:5000/play/minimax`, payload, {
           headers: {
               'Content-Type': 'application/json',
           },
@@ -67,6 +67,34 @@ const sendBoardToMinimax = async (arrayData, difficulty) => {
       return response.data.best_move; // Retorna a predição
   } catch (error) {
       console.error('Erro ao enviar o array:', error);
+  }
+};
+
+const sendBoardToNeuralNetwork = async (board, difficulty = 'hard') => {
+  try {
+    // Exemplo de uma chamada para a API que retorna a próxima jogada
+    const response = await fetch('http://127.0.0.1:5000/play/mlp', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        board: board,
+        difficulty: difficulty      // Dificuldade de Minimax
+      }),
+    });
+
+    console.log("Tabuleiro enviado para o back da rede neural");
+    if (!response.ok) {
+      throw new Error('Erro ao comunicar com a rede neural');
+    }
+
+    console.log('Resposta do servidor da jogada da rede neural:', response.data.best_move);
+    const data = await response.json();
+    return data.best_move; // A resposta inclui a próxima jogada calculada pela IA
+  } catch (error) {
+    console.error("Erro ao obter a jogada da rede neural:", error);
+    return null; // Em caso de erro, retorna null
   }
 };
 
@@ -119,66 +147,102 @@ const Square = ({ value, onClick, isWinning }) => (
   </button>
 );
 
-const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction, setRealOutcome, updateAccuracy }) => {
+const Board = ({ onNewGame, setKnnPrediction, setGbPrediction, setMlpPrediction, setRealOutcome, isNeuralPlaying }) => {
   const [squares, setSquares] = useState(Array(9).fill(null));
   const [xIsNext, setXIsNext] = useState(true);
   const [gameStatus, setGameStatus] = useState(null);
   const [winningLine, setWinningLine] = useState([]);
   const [isGameOver, setIsGameOver] = useState(false); // Novo estado para controlar o fim do jogo
   const [nextPlay, setNextPlay] = useState('');
-  
+
+  console.log("Esse é o valor do isNeuralPlaying: "+isNeuralPlaying);  // Verifique se o valor está sendo passado corretamente
+
   const handleClick = (i) => {
+    // Se o jogo acabou ou a posição já está preenchida, não faz nada
     if (isGameOver || squares[i]) return;
-
+  
     const newSquares = squares.slice();
-    newSquares[i] = 'X';
+    newSquares[i] = 'X';  // Jogada do usuário (X)
     setSquares(newSquares);
-    setXIsNext(false);
-
+    setXIsNext(false);  // Agora o computador faz a jogada
+  
     const arrayConvertedX = newSquares.map(value =>
       value === null ? 0 :
       value === "X" ? 1 :
       value === "O" ? -1 :
       value
     );
-
+  
     const gameStatus = sendGameStatus(newSquares, setRealOutcome);
-
+  
+    // Se o jogo não acabou, envia as predições para os modelos
     if (!isGameOver) {
       sendArrayToServer(arrayConvertedX, setKnnPrediction, '/models/knn');
       sendArrayToServerGb(arrayConvertedX, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
       sendArrayToServer(arrayConvertedX, setMlpPrediction, '/models/mlp');
       
-      // Aqui aguardamos a jogada do Minimax e só então realizamos a jogada de 'O'
-      sendBoardToMinimax(arrayConvertedX, 'hard').then(nextPlay => {
-        if (nextPlay !== null && !isGameOver) {
-          setNextPlay(nextPlay);
-          console.log("Próxima jogada do Minimax: " + nextPlay);
-          
-          // Faz a jogada do computador com base no `nextPlay`
-          newSquares[nextPlay] = 'O';
-          setSquares(newSquares);
-
-          const arrayConvertedO = newSquares.map(value =>
-            value === null ? 0 :
-            value === "X" ? 1 :
-            value === "O" ? -1 :
-            value
-          );
-
-          sendGameStatus(newSquares, setRealOutcome);
-
-          if (!isGameOver) {
-            sendArrayToServer(arrayConvertedO, setKnnPrediction, '/models/knn');
-            sendArrayToServerGb(arrayConvertedO, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
-            sendArrayToServer(arrayConvertedO, setMlpPrediction, '/models/mlp');
+      // Se está jogando contra a Rede Neural (isNeuralPlaying é true), aguarda a jogada da IA
+      if (isNeuralPlaying) {
+        sendBoardToNeuralNetwork(arrayConvertedX).then(nextPlay => {
+          if (nextPlay !== null && !isGameOver) {
+            console.log("Próxima jogada da Rede Neural: " + nextPlay);
+  
+            // Realiza a jogada da Rede Neural (O)
+            newSquares[nextPlay] = 'O';
+            setSquares(newSquares);
+  
+            const arrayConvertedO = newSquares.map(value =>
+              value === null ? 0 :
+              value === "X" ? 1 :
+              value === "O" ? -1 :
+              value
+            );
+  
+            sendGameStatus(newSquares, setRealOutcome);
+  
+            // Envia para os modelos novamente após a jogada da Rede Neural
+            if (!isGameOver) {
+              sendArrayToServer(arrayConvertedO, setKnnPrediction, '/models/knn');
+              sendArrayToServerGb(arrayConvertedO, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
+              sendArrayToServer(arrayConvertedO, setMlpPrediction, '/models/mlp');
+            }
           }
-        }
-      }).catch(error => {
-        console.error("Erro:", error);
-      });
+        }).catch(error => {
+          console.error("Erro ao obter a jogada da Rede Neural:", error);
+        });
+  
+      // Se está jogando contra o Minimax (isNeuralPlaying é false), aguarda a jogada do Minimax
+      } else {
+        sendBoardToMinimax(arrayConvertedX, 'hard').then(nextPlay => {
+          if (nextPlay !== null && !isGameOver) {
+            console.log("Próxima jogada do Minimax: " + nextPlay);
+  
+            // Realiza a jogada do Minimax (O)
+            newSquares[nextPlay] = 'O';
+            setSquares(newSquares);
+  
+            const arrayConvertedO = newSquares.map(value =>
+              value === null ? 0 :
+              value === "X" ? 1 :
+              value === "O" ? -1 :
+              value
+            );
+  
+            sendGameStatus(newSquares, setRealOutcome);
+  
+            // Envia para os modelos após a jogada do Minimax
+            if (!isGameOver) {
+              sendArrayToServer(arrayConvertedO, setKnnPrediction, '/models/knn');
+              sendArrayToServerGb(arrayConvertedO, setGbPrediction, '/models/gb', setIsGameOver, setGameStatus, handleRestart);
+              sendArrayToServer(arrayConvertedO, setMlpPrediction, '/models/mlp');
+            }
+          }
+        }).catch(error => {
+          console.error("Erro ao obter a jogada do Minimax:", error);
+        });
+      }
     }
-};
+  };
   
   const handleRestart = () => {
     setSquares(Array(9).fill(null));
@@ -242,7 +306,7 @@ function App() {
   const [mlpPrediction, setMlpPrediction] = useState(''); 
   const [realOutcome, setRealOutcome] = useState([]);
   const [difficultyLevel, setDifficultyLevel] = useState('');
-  const [isNeuralPlaying, setIsNeuralPlaying] = useState(false);  // Novo estado para alternar entre as opções de jogo
+  const [isNeuralPlaying, setIsNeuralPlaying] = useState(true);  // Novo estado para alternar entre as opções de jogo
 
   const handleNewGame = () => {
     // Lógica para reiniciar ou preparar um novo jogo
@@ -315,7 +379,7 @@ function App() {
         setMlpPrediction={setMlpPrediction}
         setRealOutcome={setRealOutcome} 
         updateAccuracy={updateAccuracy}
-        isNeuralPlaying={isNeuralPlaying}  
+        isNeuralPlaying={isNeuralPlaying}
       />
       <div className={styles.scoreBoard}>
         <p> Acurácia do Gradient Booster: {accuracy.toFixed(2)}%</p>
